@@ -382,15 +382,22 @@ def dashboard():
     total_pending = db_execute("SELECT COALESCE(SUM(amount_paid),0) AS total FROM payments WHERE status = %s", ('Pending',), fetchone=True)['total']
     balance_rows = db_execute("SELECT s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON p.student_id = s.id GROUP BY s.id", fetchall=True) or []
     owing_count = balanced_count = credit_count = 0
+    owing_total = 0.0
+    credit_total = 0.0
     for r in balance_rows:
         b = balance_breakdown(r['total_fee'], r['amount_paid'])
-        if b['status'] == 'Owing School': owing_count += 1
-        elif b['status'] == 'School Owes Student': credit_count += 1
-        else: balanced_count += 1
+        if b['status'] == 'Owing School':
+            owing_count += 1
+            owing_total += b['amount_due']
+        elif b['status'] == 'School Owes Student':
+            credit_count += 1
+            credit_total += b['credit_balance']
+        else:
+            balanced_count += 1
     symbol = currency_symbol()
     recent = db_execute("SELECT p.id, s.student_code, s.full_name, p.amount_paid, p.payment_date, p.term_name, p.reference, p.status, p.method, p.channel FROM payments p JOIN students s ON s.id = p.student_id ORDER BY p.id DESC LIMIT 10", fetchall=True) or []
     rows = "".join(f"<tr><td>{p['student_code'] or '-'}</td><td>{p['full_name']}</td><td>{symbol}{p['amount_paid']:,.2f}</td><td>{p['term_name']}</td><td>{p['method']}</td><td>{p['channel'] or '-'}</td><td>{p['status']}</td><td>{p['reference']}</td><td>{p['payment_date'] or '-'}</td></tr>" for p in recent) or "<tr><td colspan='9'>No payments yet.</td></tr>"
-    content = f"<div class='hero'><h1>School Finance Control Center</h1><p>Manage parents, students, receipts, and online school fee payments from one professional dashboard.</p></div><div class='dashboard-grid'><div class='card'><div class='stat-header'><div class='icon-chip'>🎓</div><h3 class='stat-label'>Total Students</h3></div><h1 class='stat-number'>{total_students}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>👨‍👩‍👧</div><h3 class='stat-label'>Total Parents</h3></div><h1 class='stat-number'>{total_parents}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>💼</div><h3 class='stat-label'>Total Expected Fees</h3></div><h1 class='stat-number'>{symbol}{total_expected:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>✅</div><h3 class='stat-label'>Total Received</h3></div><h1 class='stat-number success'>{symbol}{total_received:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>⚠️</div><h3 class='stat-label'>Students Owing</h3></div><h1 class='stat-number danger'>{owing_count}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>💳</div><h3 class='stat-label'>Credit Balance</h3></div><h1 class='stat-number info'>{credit_count}</h1></div></div><div class='card' style='margin-bottom:18px;'><strong>Balanced Students:</strong> <span class='success'>{balanced_count}</span> &nbsp; | &nbsp; <strong>Pending Transactions:</strong> {symbol}{total_pending:,.2f}</div><table><tr><th>Student ID</th><th>Student</th><th>Amount</th><th>Term</th><th>Method</th><th>Channel</th><th>Status</th><th>Reference</th><th>Date</th></tr>{rows}</table>"
+    content = f"<div class='hero'><h1>School Finance Control Center</h1><p>Manage parents, students, receipts, and online school fee payments from one professional dashboard.</p></div><div class='dashboard-grid'><div class='card'><div class='stat-header'><div class='icon-chip'>🎓</div><h3 class='stat-label'>Total Students</h3></div><h1 class='stat-number'>{total_students}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>👨‍👩‍👧</div><h3 class='stat-label'>Total Parents</h3></div><h1 class='stat-number'>{total_parents}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>💼</div><h3 class='stat-label'>Total Expected Fees</h3></div><h1 class='stat-number'>{symbol}{total_expected:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>✅</div><h3 class='stat-label'>Total Received</h3></div><h1 class='stat-number success'>{symbol}{total_received:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>⚠️</div><h3 class='stat-label'>Students Owing</h3></div><h1 class='stat-number danger'>{owing_count}</h1><p class='muted'>{symbol}{owing_total:,.2f}</p></div><div class='card'><div class='stat-header'><div class='icon-chip'>💳</div><h3 class='stat-label'>Credit Balance</h3></div><h1 class='stat-number info'>{credit_count}</h1><p class='muted'>{symbol}{credit_total:,.2f}</p></div></div><div class='card' style='margin-bottom:18px;'><strong>Balanced Students:</strong> <span class='success'>{balanced_count}</span> &nbsp; | &nbsp; <strong>Pending Transactions:</strong> {symbol}{total_pending:,.2f}</div><table><tr><th>Student ID</th><th>Student</th><th>Amount</th><th>Term</th><th>Method</th><th>Channel</th><th>Status</th><th>Reference</th><th>Date</th></tr>{rows}</table>"
     return render_page(content)
 
 @app.route('/admin-accounts', methods=['GET', 'POST'])
