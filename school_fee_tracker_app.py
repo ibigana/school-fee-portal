@@ -554,12 +554,36 @@ def receipt(payment_id):
     if not payment:
         flash('Receipt not found.')
         return redirect(url_for('dashboard'))
+
     total_paid = db_execute("SELECT COALESCE(SUM(amount_paid),0) AS total FROM payments WHERE student_id = %s AND status = %s", (payment['student_id'], 'Paid'), fetchone=True)['total']
     b = balance_breakdown(payment['total_fee'], total_paid)
     symbol = currency_symbol()
     school_name, school_logo = school_context()
     status_class = 'status-paid' if payment['status'] == 'Paid' else ('status-pending' if payment['status'] == 'Pending' else 'status-failed')
-    return render_page(f"<div class='receipt'><div class='school-brand'>{f\"<img src='{school_logo}' alt='School Logo'>\" if school_logo else ''}<div><h2>{school_name}</h2></div></div><p><span class='badge {status_class}'>{payment['status']}</span></p><table><tr><th>Receipt Reference</th><td>{payment['reference']}</td></tr><tr><th>Student ID</th><td>{payment['student_code'] or '-'}</td></tr><tr><th>Student Name</th><td>{payment['full_name']}</td></tr><tr><th>Class</th><td>{payment['class_name']}</td></tr><tr><th>Amount Paid</th><td>{symbol}{payment['amount_paid']:,.2f}</td></tr><tr><th>Total School Fee</th><td>{symbol}{payment['total_fee']:,.2f}</td></tr><tr><th>Total Paid So Far</th><td>{symbol}{total_paid:,.2f}</td></tr><tr><th>Amount Due</th><td>{symbol}{b['amount_due']:,.2f}</td></tr><tr><th>Credit Balance</th><td>{symbol}{b['credit_balance']:,.2f}</td></tr><tr><th>Status</th><td class='{b['status_class']}'>{b['status']}</td></tr></table></div>")
+    logo_html = f"<img src='{school_logo}' alt='School Logo'>" if school_logo else ''
+
+    content = f"""
+    <div class='receipt'>
+        <div class='school-brand'>
+            {logo_html}
+            <div><h2>{school_name}</h2></div>
+        </div>
+        <p><span class='badge {status_class}'>{payment['status']}</span></p>
+        <table>
+            <tr><th>Receipt Reference</th><td>{payment['reference']}</td></tr>
+            <tr><th>Student ID</th><td>{payment['student_code'] or '-'}</td></tr>
+            <tr><th>Student Name</th><td>{payment['full_name']}</td></tr>
+            <tr><th>Class</th><td>{payment['class_name']}</td></tr>
+            <tr><th>Amount Paid</th><td>{symbol}{payment['amount_paid']:,.2f}</td></tr>
+            <tr><th>Total School Fee</th><td>{symbol}{payment['total_fee']:,.2f}</td></tr>
+            <tr><th>Total Paid So Far</th><td>{symbol}{total_paid:,.2f}</td></tr>
+            <tr><th>Amount Due</th><td>{symbol}{b['amount_due']:,.2f}</td></tr>
+            <tr><th>Credit Balance</th><td>{symbol}{b['credit_balance']:,.2f}</td></tr>
+            <tr><th>Status</th><td class='{b['status_class']}'>{b['status']}</td></tr>
+        </table>
+    </div>
+    """
+    return render_page(content)
 
 @app.route('/reports')
 @login_required('admin')
@@ -568,7 +592,28 @@ def reports():
     rows_data = db_execute("SELECT s.student_code, s.full_name, s.class_name, s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON s.id = p.student_id GROUP BY s.id ORDER BY s.full_name ASC", fetchall=True) or []
     rows = ""
     for r in rows_data:
-        b
+        b = balance_breakdown(r['total_fee'], r['amount_paid'])
+        rows += f"<tr><td>{r['student_code'] or '-'}</td><td>{r['full_name']}</td><td>{r['class_name']}</td><td>{symbol}{r['total_fee']:,.2f}</td><td>{symbol}{r['amount_paid']:,.2f}</td><td>{symbol}{b['amount_due']:,.2f}</td><td>{symbol}{b['credit_balance']:,.2f}</td><td class='{b['status_class']}'>{b['status']}</td></tr>"
+    export_btn = f"<div class='top-actions'><a href='{url_for('export_csv')}' class='btn btn-secondary'>Export CSV</a></div>"
+    return render_page(export_btn + f"<table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Amount Due</th><th>Credit Balance</th><th>Status</th></tr>{rows}</table>")
+
+@app.route('/export-csv')
+@login_required('admin')
+def export_csv():
+    rows = db_execute("SELECT s.student_code, s.full_name, s.class_name, s.parent_phone, s.parent_email, s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON s.id = p.student_id GROUP BY s.id ORDER BY s.full_name ASC", fetchall=True) or []
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Student ID', 'Student Name', 'Class', 'Parent Phone', 'Parent Email', 'Total Fee', 'Amount Paid', 'Amount Due', 'Credit Balance', 'Status'])
+    for row in rows:
+        b = balance_breakdown(row['total_fee'], row['amount_paid'])
+        writer.writerow([row['student_code'], row['full_name'], row['class_name'], row['parent_phone'], row['parent_email'], row['total_fee'], row['amount_paid'], b['amount_due'], b['credit_balance'], b['status']])
+    mem = io.BytesIO()
+    mem.write(output.getvalue().encode('utf-8'))
+    mem.seek(0)
+    output.close()
+    return send_file(mem, mimetype='text/csv', as_attachment=True, download_name='school_fee_report.csv')
+
+@app.route('/settings', methods=['GET', 'POST'])
 @login_required('admin')
 def settings_page():
     if request.method == 'POST':
