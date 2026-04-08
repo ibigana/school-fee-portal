@@ -1,11 +1,14 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import csv
 import io
 import hmac
 import base64
 import hashlib
 import logging
-import sqlite3
+import psycopg
+from psycopg.rows import dict_row
 import uuid
 from functools import wraps
 from datetime import datetime
@@ -30,7 +33,7 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = False if os.getenv("APP_ENV", "development") == "development" else True
 
-DB_NAME = os.getenv("DB_NAME", "school_fee_tracker.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "")
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:5000").rstrip("/")
@@ -314,6 +317,7 @@ BASE_HTML = """
                 <a href="{{ url_for('payments') }}">Payments</a>
                 <a href="{{ url_for('reports') }}">Reports</a>
                 <a href="{{ url_for('settings_page') }}">Settings</a>
+                <a href="{{ url_for('admin_accounts_page') }}">Admin Accounts</a>
             {% else %}
                 <a href="{{ url_for('parent_dashboard') }}">My Dashboard</a>
                 <a href="{{ url_for('parent_children') }}">My Children</a>
@@ -350,9 +354,9 @@ BASE_HTML = """
 
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is missing. Set it in your environment variables.")
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
 
 
 def hash_password(password: str) -> str:
@@ -912,6 +916,76 @@ def dashboard():
     <h3>Recent Payments</h3>
     <table>
         <tr><th>Student ID</th><th>Student</th><th>Amount</th><th>Term</th><th>Method</th><th>Channel</th><th>Status</th><th>Reference</th><th>Date</th></tr>
+        {rows}
+    </table>
+    """
+    return render_page(content)
+
+
+@app.route('/admin-accounts', methods=['GET', 'POST'])
+@login_required('admin')
+def admin_accounts_page():
+    conn = get_db_connection()
+
+    if request.method == 'POST':
+        full_name = request.form['full_name'].strip()
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
+
+        if not full_name or not username or not password:
+            conn.close()
+            flash('Full name, username, and password are required.')
+            return redirect(url_for('admin_accounts_page'))
+
+        try:
+            conn.execute(
+                "INSERT INTO users (full_name, username, password_hash, role, created_at) VALUES (%s, %s, %s, %s, %s)",
+                (full_name, username, hash_password(password), 'admin', now_str()),
+            )
+            conn.commit()
+            flash('Admin account created successfully.')
+        except Exception as exc:
+            conn.rollback()
+            msg = str(exc)
+            if 'duplicate' in msg.lower() or 'unique' in msg.lower():
+                flash('That username already exists.')
+            else:
+                flash(f'Could not create admin account: {msg}')
+        conn.close()
+        return redirect(url_for('admin_accounts_page'))
+
+    admins = conn.execute(
+        "SELECT id, full_name, username, role, created_at FROM users WHERE role = %s ORDER BY id DESC",
+        ('admin',)
+    ).fetchall()
+    conn.close()
+
+    rows = "".join(
+        f"<tr><td>{a['full_name']}</td><td>{a['username']}</td><td>{a['role']}</td><td>{a['created_at']}</td></tr>"
+        for a in admins
+    ) or "<tr><td colspan='4'>No admin accounts found.</td></tr>"
+
+    content = f"""
+    <div class='hero'>
+        <h1>Admin Accounts</h1>
+        <p>Create additional school administrator accounts for finance, bursary, or management staff.</p>
+    </div>
+
+    <form method='post'>
+        <h2>Create Admin Account</h2>
+        <div class='row'>
+            <div><label>Full Name</label><input type='text' name='full_name' required></div>
+            <div><label>Username</label><input type='text' name='username' required></div>
+        </div>
+        <div class='row'>
+            <div><label>Password</label><input type='text' name='password' required></div>
+        </div>
+        <button type='submit'>Create Admin</button>
+    </form>
+
+    <h2>Existing Admin Accounts</h2>
+    <table>
+        <tr><th>Full Name</th><th>Username</th><th>Role</th><th>Created At</th></tr>
         {rows}
     </table>
     """
