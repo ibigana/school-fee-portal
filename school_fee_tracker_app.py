@@ -117,7 +117,7 @@ function toggleMenu(){ const menu = document.getElementById('mobileNavMenu'); if
         </form>
     </div>
     <div class="nav-top">
-        <div class="brand-wrap">{% if school_logo %}<img src="{{ school_logo }}" class="mini-logo" alt="Logo">{% endif %}<h2>{{ school_name }}</h2></div>
+        <div class="brand-wrap">{% if school_logo %}<img src="{{ school_logo }}" class="mini-logo" alt="Logo">{% endif %}<h2>ibigana.com</h2></div>
         <button class="nav-toggle" onclick="toggleMenu()">Menu</button>
         <div class="nav-spacer"></div>
     </div>
@@ -568,11 +568,7 @@ def reports():
     rows_data = db_execute("SELECT s.student_code, s.full_name, s.class_name, s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON s.id = p.student_id GROUP BY s.id ORDER BY s.full_name ASC", fetchall=True) or []
     rows = ""
     for r in rows_data:
-        b = balance_breakdown(r['total_fee'], r['amount_paid'])
-        rows += f"<tr><td>{r['student_code'] or '-'}</td><td>{r['full_name']}</td><td>{r['class_name']}</td><td>{symbol}{r['total_fee']:,.2f}</td><td>{symbol}{r['amount_paid']:,.2f}</td><td>{symbol}{b['amount_due']:,.2f}</td><td>{symbol}{b['credit_balance']:,.2f}</td><td class='{b['status_class']}'>{b['status']}</td></tr>"
-    return render_page(f"<table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Amount Due</th><th>Credit Balance</th><th>Status</th></tr>{rows}</table>")
-
-@app.route('/settings', methods=['GET', 'POST'])
+        b
 @login_required('admin')
 def settings_page():
     if request.method == 'POST':
