@@ -134,7 +134,7 @@ BASE_HTML = """
         .card {
             background: white;
             border-radius: 16px;
-            padding: 18px;
+            padding: 14px 16px;
             box-shadow: 0 6px 18px rgba(0,0,0,0.06);
             min-width: 0;
             overflow: hidden;
@@ -150,7 +150,7 @@ BASE_HTML = """
             word-break: break-word;
         }
         .stat-label {
-            margin-bottom: 10px;
+            margin-bottom: 0;
             color: #5d6d7e;
             text-transform: uppercase;
             letter-spacing: 0.04em;
@@ -233,7 +233,8 @@ BASE_HTML = """
         .school-brand img { width: 80px; height: 80px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid #ddd; }
         .mini-logo { width: 42px; height: 42px; object-fit: contain; border-radius: 6px; background: white; }
         .split { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
-        .icon-chip { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #eaf1f8 0%, #dbeaf6 100%); font-size: 18px; margin-bottom: 10px; }
+        .icon-chip { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #eaf1f8 0%, #dbeaf6 100%); font-size: 16px; margin-bottom: 0; flex-shrink: 0; }
+        .stat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; }
         .landing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 22px; }
         .right { text-align: right; }
         @media (max-width: 1024px) {
@@ -293,9 +294,9 @@ BASE_HTML = """
     </div>
     {% elif session.get('user_id') %}
     <header>
-        <div style="margin-bottom:12px;">
-            <form action="{{ url_for('global_search') }}" method="get" class="no-print" style="background:transparent;box-shadow:none;padding:0;margin:0;border:none;">
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <div style="margin-bottom:12px; display:flex; justify-content:flex-end;">
+            <form action="{{ url_for('global_search') }}" method="get" class="no-print" style="background:transparent;box-shadow:none;padding:0;margin:0;border:none; width:min(520px, 100%);">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;">
                     <input type="text" name="q" placeholder="Search student by name, student ID, class, parent email, or payment reference" style="flex:1;min-width:240px;margin:0;background:white;" value="{{ request.args.get('q','') if request.endpoint == 'global_search' else '' }}">
                     <button type="submit" class="btn" style="margin:0;">Search</button>
                 </div>
@@ -318,6 +319,7 @@ BASE_HTML = """
                 <a href="{{ url_for('reports') }}">Reports</a>
                 <a href="{{ url_for('settings_page') }}">Settings</a>
                 <a href="{{ url_for('admin_accounts_page') }}">Admin Accounts</a>
+                <a href="{{ url_for('admin_change_password_page') }}">Change Admin Password</a>
             {% else %}
                 <a href="{{ url_for('parent_dashboard') }}">My Dashboard</a>
                 <a href="{{ url_for('parent_children') }}">My Children</a>
@@ -898,12 +900,12 @@ def dashboard():
         </div>
     </div>
     <div class='dashboard-grid'>
-        <div class='card'><div class='icon-chip'>🎓</div><h3 class='stat-label'>Total Students</h3><h1 class='stat-number'>{total_students}</h1></div>
-        <div class='card'><div class='icon-chip'>👨‍👩‍👧</div><h3 class='stat-label'>Total Parents</h3><h1 class='stat-number'>{total_parents}</h1></div>
-        <div class='card'><div class='icon-chip'>💼</div><h3 class='stat-label'>Total Expected Fees</h3><h1 class='stat-number'>{symbol}{total_expected:,.2f}</h1></div>
-        <div class='card'><div class='icon-chip'>✅</div><h3 class='stat-label'>Total Received</h3><h1 class='stat-number success'>{symbol}{total_received:,.2f}</h1></div>
-        <div class='card'><div class='icon-chip'>⏳</div><h3 class='stat-label'>Pending</h3><h1 class='stat-number'>{symbol}{total_pending:,.2f}</h1></div>
-        <div class='card'><div class='icon-chip'>📌</div><h3 class='stat-label'>Outstanding</h3><h1 class='stat-number danger'>{symbol}{outstanding:,.2f}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>🎓</div><h3 class='stat-label'>Total Students</h3></div><h1 class='stat-number'>{total_students}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>👨‍👩‍👧</div><h3 class='stat-label'>Total Parents</h3></div><h1 class='stat-number'>{total_parents}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>💼</div><h3 class='stat-label'>Total Expected Fees</h3></div><h1 class='stat-number'>{symbol}{total_expected:,.2f}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>✅</div><h3 class='stat-label'>Total Received</h3></div><h1 class='stat-number success'>{symbol}{total_received:,.2f}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>⏳</div><h3 class='stat-label'>Pending</h3></div><h1 class='stat-number'>{symbol}{total_pending:,.2f}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>📌</div><h3 class='stat-label'>Outstanding</h3></div><h1 class='stat-number danger'>{symbol}{outstanding:,.2f}</h1></div>
     </div>
 
     <div class='top-actions'>
@@ -986,6 +988,85 @@ def admin_accounts_page():
     <h2>Existing Admin Accounts</h2>
     <table>
         <tr><th>Full Name</th><th>Username</th><th>Role</th><th>Created At</th></tr>
+        {rows}
+    </table>
+    """
+    return render_page(content)
+
+
+@app.route('/admin-change-password', methods=['GET', 'POST'])
+@login_required('admin')
+def admin_change_password_page():
+    conn = get_db_connection()
+
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        new_password = request.form['new_password'].strip()
+
+        if not username or not new_password:
+            conn.close()
+            flash('Username and new password are required.')
+            return redirect(url_for('admin_change_password_page'))
+
+        existing = conn.execute(
+            "SELECT id FROM users WHERE username = %s AND role = %s",
+            (username, 'admin')
+        ).fetchone()
+
+        if not existing:
+            conn.close()
+            flash('Admin account not found.')
+            return redirect(url_for('admin_change_password_page'))
+
+        conn.execute(
+            "UPDATE users SET password_hash = %s WHERE username = %s AND role = %s",
+            (hash_password(new_password), username, 'admin')
+        )
+        conn.commit()
+        conn.close()
+        flash('Admin password changed successfully.')
+        return redirect(url_for('admin_change_password_page'))
+
+    admins = conn.execute(
+        "SELECT full_name, username, created_at FROM users WHERE role = %s ORDER BY id DESC",
+        ('admin',)
+    ).fetchall()
+    conn.close()
+
+    options = ''.join(
+        f"<option value='{a['username']}'>{a['full_name']} - {a['username']}</option>" for a in admins
+    )
+
+    rows = ''.join(
+        f"<tr><td>{a['full_name']}</td><td>{a['username']}</td><td>{a['created_at']}</td></tr>" for a in admins
+    ) or "<tr><td colspan='3'>No admin accounts found.</td></tr>"
+
+    content = f"""
+    <div class='hero'>
+        <h1>Change Admin Password</h1>
+        <p>Reset the password of any school administrator account.</p>
+    </div>
+
+    <form method='post'>
+        <div class='row'>
+            <div>
+                <label>Select Admin</label>
+                <select name='username' required>
+                    <option value=''>Select Admin</option>
+                    {options}
+                </select>
+            </div>
+            <div>
+                <label>New Password</label>
+                <input type='text' name='new_password' required>
+            </div>
+        </div>
+        <button type='submit'>Change Password</button>
+    </form>
+
+    <h2>Admin Accounts</h2>
+    <table>
+        <tr><th>Full Name</th><th>Username</th><th>Created At</th></tr>
         {rows}
     </table>
     """
@@ -1253,9 +1334,9 @@ def parent_dashboard():
 
     content = f"""
     <div class='grid'>
-        <div class='card'><h3 class='stat-label'>Parent</h3><h2 class='stat-number'>{parent['full_name']}</h2><p>{parent['email']}</p></div>
-        <div class='card'><h3 class='stat-label'>Children</h3><h1 class='stat-number'>{len(children)}</h1></div>
-        <div class='card'><h3 class='stat-label'>Total Outstanding</h3><h1 class='stat-number danger'>{symbol}{total_balance:,.2f}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>👤</div><h3 class='stat-label'>Parent</h3></div><h2 class='stat-number'>{parent['full_name']}</h2><p>{parent['email']}</p></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>👶</div><h3 class='stat-label'>Children</h3></div><h1 class='stat-number'>{len(children)}</h1></div>
+        <div class='card'><div class='stat-header'><div class='icon-chip'>📌</div><h3 class='stat-label'>Total Outstanding</h3></div><h1 class='stat-number danger'>{symbol}{total_balance:,.2f}</h1></div>
     </div>
 
     <div class='landing-grid'>
