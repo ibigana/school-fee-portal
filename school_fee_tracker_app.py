@@ -49,14 +49,14 @@ BASE_HTML = """
 <style>
 * { box-sizing: border-box; }
 body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #222; }
-header { background: linear-gradient(135deg, #123a5c 0%, #1f4e79 55%, #2c6da3 100%); color: white; padding: 16px 24px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+header { background: linear-gradient(135deg, #123a5c 0%, #1f4e79 55%, #2c6da3 100%); color: white; padding: 8px 16px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
 nav a { color: white; text-decoration: none; font-weight: bold; }
 .nav-toggle { display: none; background: transparent; border: 1px solid rgba(255,255,255,0.35); color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; width: auto; margin: 0; }
 .nav-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
 .brand-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.brand-wrap h2 { margin: 0; font-size: 1.25rem; overflow-wrap: anywhere; }
+.brand-wrap h2 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
 .nav-spacer { justify-self: end; }
-.nav-menu { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.nav-menu { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .nav-menu a { padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,0.08); }
 .container { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
 .hero { background: linear-gradient(135deg, #ffffff 0%, #eef5fb 100%); border-radius: 18px; padding: 28px; box-shadow: 0 8px 24px rgba(18,58,92,0.08); margin-bottom: 24px; border: 1px solid rgba(31,78,121,0.08); }
