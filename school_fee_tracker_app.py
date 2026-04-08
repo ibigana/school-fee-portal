@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
+
 import os
 import csv
 import io
@@ -38,7 +39,7 @@ MAX_LOGO_SIZE = 2 * 1024 * 1024
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BASE_HTML = r'''
+BASE_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,13 +74,14 @@ table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0
 th, td { padding: 12px; border-bottom: 1px solid #e7ebf0; text-align: left; font-size: 14px; }
 th { background: #eaf1f8; color: #284a6b; }
 form { background: white; padding: 18px; border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 24px; border: 1px solid rgba(31,78,121,0.07); }
-input, select, button, textarea { width: 100%; padding: 12px; margin-top: 6px; margin-bottom: 14px; border: 1px solid #ccd5df; border-radius: 10px; }
+input, select, button, textarea { width: 100%; padding: 12px; margin-top: 6px; margin-bottom: 14px; border: 1px solid #ccd5df; border-radius: 10px; box-sizing: border-box; }
 button, .btn { background: linear-gradient(135deg, #1f4e79 0%, #2c6da3 100%); color: white; border: none; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; width: auto; padding: 10px 16px; border-radius: 10px; }
 .btn-secondary { background: linear-gradient(135deg, #267b42 0%, #35a95a 100%); }
 .btn-warning { background: linear-gradient(135deg, #b87500 0%, #de980d 100%); }
 .flash { background: #dff0d8; color: #2d572c; padding: 12px; border-radius: 10px; margin-bottom: 16px; border-left: 4px solid #2f7d32; }
 .danger { color: #b00020; font-weight: bold; }
 .success { color: #2f7d32; font-weight: bold; }
+.info { color: #0b5cab; font-weight: bold; }
 .muted { color: #666; font-size: 14px; }
 .top-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .auth-box { max-width: 460px; margin: 50px auto; }
@@ -92,8 +94,7 @@ button, .btn { background: linear-gradient(135deg, #1f4e79 0%, #2c6da3 100%); co
 .school-brand img { width: 80px; height: 80px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid #ddd; }
 .mini-logo { width: 42px; height: 42px; object-fit: contain; border-radius: 6px; background: white; }
 .split { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
-.icon-chip { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #eaf1f8 0%, #dbeaf6 100%); font-size: 16px; }
-.landing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 22px; }
+.icon-chip { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #eaf1f8 0%, #dbeaf6 100%); font-size: 16px; flex-shrink: 0; }
 @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 850px) { .split { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .nav-top { grid-template-columns: 1fr auto; } .nav-spacer { display: none; } .nav-toggle { display: inline-block; } .nav-menu { display: none; width: 100%; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 12px; background: rgba(255,255,255,0.08); padding: 12px; border-radius: 12px; } .nav-menu.show { display: flex; } .dashboard-grid { grid-template-columns: 1fr; } table { display: block; overflow-x: auto; white-space: nowrap; } }
@@ -138,16 +139,13 @@ function toggleMenu(){ const menu = document.getElementById('mobileNavMenu'); if
         <a href="{{ url_for('logout') }}">Logout</a>
     </nav>
 </header>
-<div class="container">
-{% with messages = get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
-{{ content|safe }}
-</div>
+<div class="container">{% with messages = get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}{{ content|safe }}</div>
 {% else %}
 <div class="container">{% with messages = get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}{{ content|safe }}</div>
 {% endif %}
 </body>
 </html>
-'''
+"""
 
 def get_db_connection():
     if not DATABASE_URL:
@@ -169,7 +167,7 @@ def db_execute(query, params=(), fetchone=False, fetchall=False, commit=False):
 
 def hash_password(password): return hashlib.sha256(password.encode()).hexdigest()
 def generate_reference(prefix="TXN"): return f"{prefix}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8].upper()}"
-def now_str(): return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+def now_str(): return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def generate_student_code():
     year_part = datetime.now().strftime('%Y')
@@ -194,10 +192,10 @@ def set_setting(key, value):
         db_execute("INSERT INTO settings (key_name, value) VALUES (%s, %s)", (key, value), commit=True)
 
 def school_context(): return get_setting("school_name", DEFAULT_SCHOOL_NAME), get_setting("school_logo", "")
-def currency_symbol(): return "₦" if get_setting("currency", DEFAULT_CURRENCY) == "NGN" else get_setting("currency", DEFAULT_CURRENCY) + " "
 def render_page(content):
     school_name, school_logo = school_context()
     return render_template_string(BASE_HTML, content=content, school_name=school_name, school_logo=school_logo)
+def currency_symbol(): return "₦" if get_setting("currency", DEFAULT_CURRENCY) == "NGN" else get_setting("currency", DEFAULT_CURRENCY) + " "
 
 def current_user():
     if session.get("user_id"):
@@ -219,18 +217,30 @@ def login_required(role=None):
         return wrapper
     return decorator
 
+def balance_breakdown(total_fee, amount_paid):
+    balance = float(total_fee) - float(amount_paid)
+    if balance > 0:
+        return {"status": "Owing School", "amount_due": balance, "credit_balance": 0.0, "status_class": "danger"}
+    if balance < 0:
+        return {"status": "School Owes Student", "amount_due": 0.0, "credit_balance": abs(balance), "status_class": "info"}
+    return {"status": "Balanced", "amount_due": 0.0, "credit_balance": 0.0, "status_class": "success"}
+
 def get_student_balance(student_id):
-    student = db_execute("SELECT total_fee FROM students WHERE id = %s", (student_id,), fetchone=True)
-    if not student: return 0
-    paid = db_execute("SELECT COALESCE(SUM(amount_paid),0) AS total FROM payments WHERE student_id = %s AND status = %s", (student_id, 'Paid'), fetchone=True)
-    return float(student["total_fee"] - (paid["total"] if paid else 0))
+    row = db_execute("""
+        SELECT s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid
+        FROM students s LEFT JOIN payments p ON p.student_id = s.id WHERE s.id = %s GROUP BY s.id
+    """, (student_id,), fetchone=True)
+    if not row:
+        return 0.0
+    return float(row["total_fee"] - row["amount_paid"])
 
 def parent_total_balance(parent_id):
     rows = db_execute("SELECT id FROM students WHERE parent_id = %s", (parent_id,), fetchall=True) or []
     return sum(get_student_balance(r["id"]) for r in rows)
 
 def paystack_headers():
-    if not PAYSTACK_SECRET_KEY: raise RuntimeError("PAYSTACK_SECRET_KEY is missing.")
+    if not PAYSTACK_SECRET_KEY:
+        raise RuntimeError("PAYSTACK_SECRET_KEY is missing.")
     return {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}", "Content-Type": "application/json"}
 
 def safe_amount_to_kobo(amount_naira): return int(round(float(amount_naira) * 100))
@@ -247,7 +257,8 @@ def verify_paystack_transaction(reference):
     return response.json()
 
 def signature_is_valid(raw_body, signature):
-    if not PAYSTACK_SECRET_KEY or not signature: return False
+    if not PAYSTACK_SECRET_KEY or not signature:
+        return False
     computed = hmac.new(PAYSTACK_SECRET_KEY.encode("utf-8"), raw_body, hashlib.sha512).hexdigest()
     return hmac.compare_digest(computed, signature)
 
@@ -267,26 +278,31 @@ def mark_payment_success(payment_row, verified_data):
     db_execute("UPDATE payments SET status = %s, payment_date = %s, paid_at = %s, gateway_response = %s, channel = %s, updated_at = %s WHERE id = %s", ("Paid", paid_at[:10], paid_at, gateway_response, channel, now_str(), payment_row["id"]), commit=True)
     return True, "Payment verified successfully."
 
+def upsert_webhook_event(event_type, event_reference, payload_text):
+    exists = db_execute("SELECT id FROM webhook_events WHERE event_type = %s AND event_reference = %s", (event_type, event_reference), fetchone=True)
+    if exists:
+        return False
+    db_execute("INSERT INTO webhook_events (event_type, event_reference, payload, received_at) VALUES (%s, %s, %s, %s)", (event_type, event_reference, payload_text, now_str()), commit=True)
+    return True
+
 def ensure_parent_can_access_student(parent_id, student_id):
     return db_execute("SELECT id FROM students WHERE id = %s AND parent_id = %s", (student_id, parent_id), fetchone=True) is not None
 
 def allowed_logo_file(filename): return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
 def file_to_data_url(file_storage):
-    if not file_storage or not file_storage.filename: return ""
+    if not file_storage or not file_storage.filename:
+        return ""
     filename = secure_filename(file_storage.filename)
-    if not allowed_logo_file(filename): raise ValueError("Only PNG, JPG, JPEG, WEBP, and GIF logo files are allowed.")
+    if not allowed_logo_file(filename):
+        raise ValueError("Only PNG, JPG, JPEG, WEBP, and GIF logo files are allowed.")
     file_bytes = file_storage.read()
-    if len(file_bytes) > MAX_LOGO_SIZE: raise ValueError("Logo file is too large. Maximum size is 2MB.")
+    if len(file_bytes) > MAX_LOGO_SIZE:
+        raise ValueError("Logo file is too large. Maximum size is 2MB.")
     extension = filename.rsplit(".", 1)[1].lower()
     mime_map = {"png":"image/png","jpg":"image/jpeg","jpeg":"image/jpeg","webp":"image/webp","gif":"image/gif"}
     encoded = base64.b64encode(file_bytes).decode("utf-8")
     return f"data:{mime_map.get(extension, 'image/png')};base64,{encoded}"
-
-def upsert_webhook_event(event_type, event_reference, payload_text):
-    exists = db_execute("SELECT id FROM webhook_events WHERE event_type = %s AND event_reference = %s", (event_type, event_reference), fetchone=True)
-    if exists: return False
-    db_execute("INSERT INTO webhook_events (event_type, event_reference, payload, received_at) VALUES (%s, %s, %s, %s)", (event_type, event_reference, payload_text, now_str()), commit=True)
-    return True
 
 def init_db():
     with get_db_connection() as conn:
@@ -301,21 +317,23 @@ def init_db():
     if not db_execute("SELECT id FROM users WHERE username = %s", ("admin",), fetchone=True):
         db_execute("INSERT INTO users (full_name, username, password_hash, role, created_at) VALUES (%s, %s, %s, %s, %s)", ("System Administrator","admin",hash_password("admin123"),"admin",now_str()), commit=True)
     rows = db_execute("SELECT id FROM students WHERE student_code IS NULL OR student_code = ''", fetchall=True) or []
-    for row in rows: db_execute("UPDATE students SET student_code = %s WHERE id = %s", (generate_student_code(), row["id"]), commit=True)
+    for row in rows:
+        db_execute("UPDATE students SET student_code = %s WHERE id = %s", (generate_student_code(), row["id"]), commit=True)
     set_setting("school_name", get_setting("school_name", DEFAULT_SCHOOL_NAME))
     set_setting("school_logo", get_setting("school_logo", ""))
     set_setting("currency", get_setting("currency", DEFAULT_CURRENCY))
 
 @app.route('/')
 def landing_page():
-    if current_user(): return redirect(url_for('parent_dashboard') if session.get('role') == 'parent' else url_for('dashboard'))
-    school_name, school_logo = school_context()
-    content = f"<div class='hero' style='padding:38px 30px;'><div style='display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:18px;'>{f"<img src='{school_logo}' alt='School Logo' style='width:90px;height:90px;object-fit:contain;border-radius:14px;background:#fff;border:1px solid #ddd;padding:8px;'>" if school_logo else "<div class='icon-chip' style='width:72px;height:72px;font-size:28px;'>🏫</div>"}<div><h1 style='margin-bottom:6px;'>{school_name}</h1><p>Welcome to the digital school portal for parent access, student dashboards, receipts, and secure online fee payments.</p></div></div><div class='hero-actions'><a href='{url_for('login')}' class='btn'>Parent / Admin Login</a><a href='{url_for('health')}' class='btn btn-secondary'>Portal Status</a></div></div>"
-    return render_page(content)
+    if current_user():
+        return redirect(url_for('parent_dashboard') if session.get('role') == 'parent' else url_for('dashboard'))
+    school_name, _ = school_context()
+    return render_page(f"<div class='hero'><h1>{school_name}</h1><p>Welcome to the digital school portal for parent access, student dashboards, receipts, and secure online fee payments.</p><div class='hero-actions'><a href='{url_for('login')}' class='btn'>Parent / Admin Login</a><a href='{url_for('health')}' class='btn btn-secondary'>Portal Status</a></div></div>")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user(): return redirect(url_for('parent_dashboard') if session.get('role') == 'parent' else url_for('dashboard'))
+    if current_user():
+        return redirect(url_for('parent_dashboard') if session.get('role') == 'parent' else url_for('dashboard'))
     if request.method == 'POST':
         user_type = request.form['user_type'].strip()
         username = request.form['username'].strip()
@@ -334,7 +352,7 @@ def login():
                 return redirect(url_for('parent_dashboard'))
         flash('Invalid login details.')
         return redirect(url_for('login'))
-    return render_page("<div class='auth-box'><form method='post'><div class='icon-chip'>🔐</div><h2>Login</h2><label>User Type</label><select name='user_type' required><option value='admin'>School Admin</option><option value='parent'>Parent</option></select><label>Username / Email</label><input type='text' name='username' required><label>Password</label><input type='password' name='password' required><button type='submit'>Login</button><p class='muted'>Default admin login: <strong>admin</strong> / <strong>admin123</strong></p></form></div>")
+    return render_page("<div class='auth-box'><form method='post'><h2>Login</h2><label>User Type</label><select name='user_type'><option value='admin'>School Admin</option><option value='parent'>Parent</option></select><label>Username / Email</label><input name='username' required><label>Password</label><input type='password' name='password' required><button type='submit'>Login</button><p class='muted'>Default admin login: <strong>admin</strong> / <strong>admin123</strong></p></form></div>")
 
 @app.route('/logout')
 def logout():
@@ -350,54 +368,51 @@ def dashboard():
     total_expected = db_execute("SELECT COALESCE(SUM(total_fee),0) AS total FROM students", fetchone=True)['total']
     total_received = db_execute("SELECT COALESCE(SUM(amount_paid),0) AS total FROM payments WHERE status = %s", ('Paid',), fetchone=True)['total']
     total_pending = db_execute("SELECT COALESCE(SUM(amount_paid),0) AS total FROM payments WHERE status = %s", ('Pending',), fetchone=True)['total']
-    outstanding = total_expected - total_received
+    balance_rows = db_execute("SELECT s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON p.student_id = s.id GROUP BY s.id", fetchall=True) or []
+    owing_count = balanced_count = credit_count = 0
+    for r in balance_rows:
+        b = balance_breakdown(r['total_fee'], r['amount_paid'])
+        if b['status'] == 'Owing School': owing_count += 1
+        elif b['status'] == 'School Owes Student': credit_count += 1
+        else: balanced_count += 1
     symbol = currency_symbol()
     recent = db_execute("SELECT p.id, s.student_code, s.full_name, p.amount_paid, p.payment_date, p.term_name, p.reference, p.status, p.method, p.channel FROM payments p JOIN students s ON s.id = p.student_id ORDER BY p.id DESC LIMIT 10", fetchall=True) or []
     rows = "".join(f"<tr><td>{p['student_code'] or '-'}</td><td>{p['full_name']}</td><td>{symbol}{p['amount_paid']:,.2f}</td><td>{p['term_name']}</td><td>{p['method']}</td><td>{p['channel'] or '-'}</td><td>{p['status']}</td><td>{p['reference']}</td><td>{p['payment_date'] or '-'}</td></tr>" for p in recent) or "<tr><td colspan='9'>No payments yet.</td></tr>"
-    content = f"<div class='hero'><h1>School Finance Control Center</h1><p>Manage parents, students, receipts, and online school fee payments from one professional dashboard.</p></div><div class='dashboard-grid'><div class='card'><div class='stat-header'><div class='icon-chip'>🎓</div><h3 class='stat-label'>Total Students</h3></div><h1 class='stat-number'>{total_students}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>👨‍👩‍👧</div><h3 class='stat-label'>Total Parents</h3></div><h1 class='stat-number'>{total_parents}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>💼</div><h3 class='stat-label'>Total Expected Fees</h3></div><h1 class='stat-number'>{symbol}{total_expected:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>✅</div><h3 class='stat-label'>Total Received</h3></div><h1 class='stat-number success'>{symbol}{total_received:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>⏳</div><h3 class='stat-label'>Pending</h3></div><h1 class='stat-number'>{symbol}{total_pending:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>📌</div><h3 class='stat-label'>Outstanding</h3></div><h1 class='stat-number danger'>{symbol}{outstanding:,.2f}</h1></div></div><h3>Recent Payments</h3><table><tr><th>Student ID</th><th>Student</th><th>Amount</th><th>Term</th><th>Method</th><th>Channel</th><th>Status</th><th>Reference</th><th>Date</th></tr>{rows}</table>"
+    content = f"<div class='hero'><h1>School Finance Control Center</h1><p>Manage parents, students, receipts, and online school fee payments from one professional dashboard.</p></div><div class='dashboard-grid'><div class='card'><div class='stat-header'><div class='icon-chip'>🎓</div><h3 class='stat-label'>Total Students</h3></div><h1 class='stat-number'>{total_students}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>👨‍👩‍👧</div><h3 class='stat-label'>Total Parents</h3></div><h1 class='stat-number'>{total_parents}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>💼</div><h3 class='stat-label'>Total Expected Fees</h3></div><h1 class='stat-number'>{symbol}{total_expected:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>✅</div><h3 class='stat-label'>Total Received</h3></div><h1 class='stat-number success'>{symbol}{total_received:,.2f}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>⚠️</div><h3 class='stat-label'>Students Owing</h3></div><h1 class='stat-number danger'>{owing_count}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>💳</div><h3 class='stat-label'>Credit Balance</h3></div><h1 class='stat-number info'>{credit_count}</h1></div></div><div class='card' style='margin-bottom:18px;'><strong>Balanced Students:</strong> <span class='success'>{balanced_count}</span> &nbsp; | &nbsp; <strong>Pending Transactions:</strong> {symbol}{total_pending:,.2f}</div><table><tr><th>Student ID</th><th>Student</th><th>Amount</th><th>Term</th><th>Method</th><th>Channel</th><th>Status</th><th>Reference</th><th>Date</th></tr>{rows}</table>"
     return render_page(content)
 
 @app.route('/admin-accounts', methods=['GET', 'POST'])
 @login_required('admin')
 def admin_accounts_page():
     if request.method == 'POST':
-        full_name, username, password = request.form['full_name'].strip(), request.form['username'].strip(), request.form['password'].strip()
-        if not full_name or not username or not password:
-            flash('Full name, username, and password are required.')
-            return redirect(url_for('admin_accounts_page'))
         try:
-            db_execute("INSERT INTO users (full_name, username, password_hash, role, created_at) VALUES (%s, %s, %s, %s, %s)", (full_name, username, hash_password(password), 'admin', now_str()), commit=True)
+            db_execute("INSERT INTO users (full_name, username, password_hash, role, created_at) VALUES (%s, %s, %s, %s, %s)", (request.form['full_name'].strip(), request.form['username'].strip(), hash_password(request.form['password'].strip()), 'admin', now_str()), commit=True)
             flash('Admin account created successfully.')
         except Exception:
             flash('That username already exists.')
         return redirect(url_for('admin_accounts_page'))
     admins = db_execute("SELECT full_name, username, role, created_at FROM users WHERE role = %s ORDER BY id DESC", ('admin',), fetchall=True) or []
     rows = "".join(f"<tr><td>{a['full_name']}</td><td>{a['username']}</td><td>{a['role']}</td><td>{a['created_at']}</td></tr>" for a in admins) or "<tr><td colspan='4'>No admin accounts found.</td></tr>"
-    return render_page(f"<div class='hero'><h1>Admin Accounts</h1><p>Create additional school administrator accounts.</p></div><form method='post'><div class='grid'><div><label>Full Name</label><input name='full_name' required></div><div><label>Username</label><input name='username' required></div><div><label>Password</label><input name='password' required></div></div><button type='submit'>Create Admin</button></form><table><tr><th>Full Name</th><th>Username</th><th>Role</th><th>Created At</th></tr>{rows}</table>")
+    return render_page(f"<form method='post'><div class='grid'><div><label>Full Name</label><input name='full_name' required></div><div><label>Username</label><input name='username' required></div><div><label>Password</label><input name='password' required></div></div><button type='submit'>Create Admin</button></form><table><tr><th>Full Name</th><th>Username</th><th>Role</th><th>Created At</th></tr>{rows}</table>")
 
 @app.route('/admin-change-password', methods=['GET', 'POST'])
 @login_required('admin')
 def admin_change_password_page():
     if request.method == 'POST':
-        username, new_password = request.form['username'].strip(), request.form['new_password'].strip()
-        if not username or not new_password:
-            flash('Username and new password are required.')
-            return redirect(url_for('admin_change_password_page'))
-        db_execute("UPDATE users SET password_hash = %s WHERE username = %s AND role = %s", (hash_password(new_password), username, 'admin'), commit=True)
+        db_execute("UPDATE users SET password_hash = %s WHERE username = %s AND role = %s", (hash_password(request.form['new_password'].strip()), request.form['username'].strip(), 'admin'), commit=True)
         flash('Admin password changed successfully.')
         return redirect(url_for('admin_change_password_page'))
     admins = db_execute("SELECT full_name, username, created_at FROM users WHERE role = %s ORDER BY id DESC", ('admin',), fetchall=True) or []
     options = ''.join(f"<option value='{a['username']}'>{a['full_name']} - {a['username']}</option>" for a in admins)
-    rows = ''.join(f"<tr><td>{a['full_name']}</td><td>{a['username']}</td><td>{a['created_at']}</td></tr>" for a in admins) or "<tr><td colspan='3'>No admin accounts found.</td></tr>"
-    return render_page(f"<div class='hero'><h1>Change Admin Password</h1></div><form method='post'><div class='grid'><div><label>Select Admin</label><select name='username' required><option value=''>Select Admin</option>{options}</select></div><div><label>New Password</label><input name='new_password' required></div></div><button type='submit'>Change Password</button></form><table><tr><th>Full Name</th><th>Username</th><th>Created At</th></tr>{rows}</table>")
+    rows = ''.join(f"<tr><td>{a['full_name']}</td><td>{a['username']}</td><td>{a['created_at']}</td></tr>" for a in admins)
+    return render_page(f"<form method='post'><div class='grid'><div><label>Select Admin</label><select name='username'>{options}</select></div><div><label>New Password</label><input name='new_password' required></div></div><button type='submit'>Change Password</button></form><table><tr><th>Full Name</th><th>Username</th><th>Created At</th></tr>{rows}</table>")
 
 @app.route('/parents', methods=['GET', 'POST'])
 @login_required('admin')
 def parents_page():
     if request.method == 'POST':
-        full_name, email, phone, password = request.form['full_name'].strip(), request.form['email'].strip().lower(), request.form['phone'].strip(), request.form['password'].strip()
         try:
-            db_execute("INSERT INTO parents (full_name, email, phone, password_hash, created_at) VALUES (%s, %s, %s, %s, %s)", (full_name, email, phone, hash_password(password), now_str()), commit=True)
+            db_execute("INSERT INTO parents (full_name, email, phone, password_hash, created_at) VALUES (%s, %s, %s, %s, %s)", (request.form['full_name'].strip(), request.form['email'].strip().lower(), request.form['phone'].strip(), hash_password(request.form['password'].strip()), now_str()), commit=True)
             flash('Parent account created successfully.')
         except Exception:
             flash('That parent email already exists.')
@@ -411,45 +426,55 @@ def parents_page():
 def students():
     symbol = currency_symbol()
     if request.method == 'POST':
-        full_name, class_name = request.form['full_name'].strip(), request.form['class_name'].strip()
-        parent_phone, parent_email = request.form['parent_phone'].strip(), request.form['parent_email'].strip().lower()
-        parent_id, total_fee = request.form['parent_id'].strip(), request.form['total_fee'].strip()
+        parent_id = request.form['parent_id'].strip()
         parent_id_value = int(parent_id) if parent_id else None
-        db_execute("INSERT INTO students (student_code, full_name, class_name, parent_phone, parent_email, parent_id, total_fee, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (generate_student_code(), full_name, class_name, parent_phone, parent_email, parent_id_value, float(total_fee or 0), now_str()), commit=True)
+        db_execute("INSERT INTO students (student_code, full_name, class_name, parent_phone, parent_email, parent_id, total_fee, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (generate_student_code(), request.form['full_name'].strip(), request.form['class_name'].strip(), request.form['parent_phone'].strip(), request.form['parent_email'].strip().lower(), parent_id_value, float(request.form['total_fee'].strip() or 0), now_str()), commit=True)
         flash('Student added successfully.')
         return redirect(url_for('students'))
     parent_options = db_execute("SELECT id, full_name, email FROM parents ORDER BY full_name ASC", fetchall=True) or []
-    student_rows = db_execute("SELECT s.*, p.full_name AS parent_name, COALESCE(SUM(CASE WHEN py.status = 'Paid' THEN py.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN parents p ON p.id = s.parent_id LEFT JOIN payments py ON s.id = py.student_id GROUP BY s.id, p.full_name ORDER BY s.id DESC", fetchall=True) or []
+    student_rows = db_execute("""
+        SELECT s.*, p.full_name AS parent_name, COALESCE(SUM(CASE WHEN py.status = 'Paid' THEN py.amount_paid ELSE 0 END), 0) AS amount_paid
+        FROM students s LEFT JOIN parents p ON p.id = s.parent_id LEFT JOIN payments py ON s.id = py.student_id
+        GROUP BY s.id, p.full_name ORDER BY s.id DESC
+    """, fetchall=True) or []
     options = "".join(f"<option value='{p['id']}'>{p['full_name']} - {p['email']}</option>" for p in parent_options)
-    rows = "".join(f"<tr><td>{s['student_code'] or '-'}</td><td>{s['full_name']}</td><td>{s['class_name']}</td><td>{s['parent_name'] or '-'}</td><td>{s['parent_email'] or '-'}</td><td>{symbol}{s['total_fee']:,.2f}</td><td>{symbol}{s['amount_paid']:,.2f}</td><td>{symbol}{(s['total_fee'] - s['amount_paid']):,.2f}</td><td><a class='btn btn-secondary' href='{url_for('start_paystack_payment', student_id=s['id'])}'>Pay Online</a></td></tr>" for s in student_rows) or "<tr><td colspan='9'>No students yet.</td></tr>"
-    return render_page(f"<form method='post'><div class='grid'><div><label>Full Name</label><input name='full_name' required></div><div><label>Class</label><input name='class_name' required></div><div><label>Link Parent Account</label><select name='parent_id'><option value=''>Select Parent</option>{options}</select></div><div><label>Parent Email</label><input name='parent_email'></div><div><label>Parent Phone</label><input name='parent_phone'></div><div><label>Total Fee</label><input name='total_fee' required></div></div><button type='submit'>Save Student</button></form><table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Parent</th><th>Parent Email</th><th>Total Fee</th><th>Paid</th><th>Balance</th><th>Online Payment</th></tr>{rows}</table>")
+    rows = ""
+    for s in student_rows:
+        b = balance_breakdown(s['total_fee'], s['amount_paid'])
+        rows += f"<tr><td>{s['student_code'] or '-'}</td><td>{s['full_name']}</td><td>{s['class_name']}</td><td>{s['parent_name'] or '-'}</td><td>{s['parent_email'] or '-'}</td><td>{symbol}{s['total_fee']:,.2f}</td><td>{symbol}{s['amount_paid']:,.2f}</td><td>{symbol}{b['amount_due']:,.2f}</td><td>{symbol}{b['credit_balance']:,.2f}</td><td class='{b['status_class']}'>{b['status']}</td><td><a class='btn btn-secondary' href='{url_for('start_paystack_payment', student_id=s['id'])}'>Pay Online</a></td></tr>"
+    rows = rows or "<tr><td colspan='11'>No students yet.</td></tr>"
+    return render_page(f"<form method='post'><div class='grid'><div><label>Full Name</label><input name='full_name' required></div><div><label>Class</label><input name='class_name' required></div><div><label>Link Parent Account</label><select name='parent_id'><option value=''>Select Parent</option>{options}</select></div><div><label>Parent Email</label><input name='parent_email'></div><div><label>Parent Phone</label><input name='parent_phone'></div><div><label>Total Fee</label><input name='total_fee' required></div></div><button type='submit'>Save Student</button></form><table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Parent</th><th>Parent Email</th><th>Total Fee</th><th>Paid</th><th>Amount Due</th><th>Credit Balance</th><th>Status</th><th>Online Payment</th></tr>{rows}</table>")
 
 @app.route('/payments', methods=['GET', 'POST'])
 @login_required('admin')
 def payments():
     symbol = currency_symbol()
     if request.method == 'POST':
-        student_id, amount_paid, payment_date = request.form['student_id'], request.form['amount_paid'], request.form['payment_date']
-        term_name, method, note = request.form['term_name'].strip(), request.form['method'].strip(), request.form['note'].strip()
-        reference = generate_reference("RCP")
-        payment_id = db_execute("INSERT INTO payments (student_id, amount_paid, payment_date, term_name, method, status, reference, note, created_by, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (int(student_id), float(amount_paid), payment_date, term_name, method, 'Paid', reference, note, session.get('user_id'), now_str(), now_str()), fetchone=True, commit=True)["id"]
+        payment_id = db_execute("INSERT INTO payments (student_id, amount_paid, payment_date, term_name, method, status, reference, note, created_by, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (int(request.form['student_id']), float(request.form['amount_paid']), request.form['payment_date'], request.form['term_name'].strip(), request.form['method'].strip(), 'Paid', generate_reference('RCP'), request.form['note'].strip(), session.get('user_id'), now_str(), now_str()), fetchone=True, commit=True)["id"]
         flash('Manual payment recorded successfully.')
         return redirect(url_for('receipt', payment_id=payment_id))
     student_options = db_execute("SELECT id, student_code, full_name, class_name FROM students ORDER BY full_name ASC", fetchall=True) or []
     payment_rows = db_execute("SELECT p.id, s.student_code, s.full_name, s.class_name, p.amount_paid, p.payment_date, p.term_name, p.reference, p.method, p.status FROM payments p JOIN students s ON s.id = p.student_id ORDER BY p.id DESC", fetchall=True) or []
     options = "".join(f"<option value='{s['id']}'>{s['student_code'] or '-'} - {s['full_name']} - {s['class_name']}</option>" for s in student_options)
     rows = "".join(f"<tr><td>{p['student_code'] or '-'}</td><td>{p['full_name']}</td><td>{p['class_name']}</td><td>{symbol}{p['amount_paid']:,.2f}</td><td>{p['term_name']}</td><td>{p['method']}</td><td>{p['status']}</td><td>{p['reference']}</td><td>{p['payment_date'] or '-'}</td><td><a class='btn' href='{url_for('receipt', payment_id=p['id'])}'>Receipt</a></td></tr>" for p in payment_rows) or "<tr><td colspan='10'>No payments yet.</td></tr>"
-    return render_page(f"<form method='post'><div class='grid'><div><label>Student</label><select name='student_id' required><option value=''>Select Student</option>{options}</select></div><div><label>Amount Paid</label><input name='amount_paid' required></div><div><label>Payment Date</label><input name='payment_date' required></div><div><label>Term</label><input name='term_name' required></div><div><label>Method</label><select name='method'><option value='Cash'>Cash</option><option value='Bank Transfer'>Bank Transfer</option><option value='POS'>POS</option></select></div><div><label>Note</label><input name='note'></div></div><button type='submit'>Save Manual Payment</button></form><table><tr><th>Student ID</th><th>Student</th><th>Class</th><th>Amount</th><th>Term</th><th>Method</th><th>Status</th><th>Reference</th><th>Date</th><th>Receipt</th></tr>{rows}</table>")
+    return render_page(f"<form method='post'><div class='grid'><div><label>Student</label><select name='student_id'>{options}</select></div><div><label>Amount Paid</label><input name='amount_paid' required></div><div><label>Payment Date</label><input name='payment_date' required></div><div><label>Term</label><input name='term_name' required></div><div><label>Method</label><select name='method'><option value='Cash'>Cash</option><option value='Bank Transfer'>Bank Transfer</option><option value='POS'>POS</option></select></div><div><label>Note</label><input name='note'></div></div><button type='submit'>Save Manual Payment</button></form><table><tr><th>Student ID</th><th>Student</th><th>Class</th><th>Amount</th><th>Term</th><th>Method</th><th>Status</th><th>Reference</th><th>Date</th><th>Receipt</th></tr>{rows}</table>")
 
 @app.route('/parent-dashboard')
 @login_required('parent')
 def parent_dashboard():
     parent = db_execute("SELECT * FROM parents WHERE id = %s", (session['user_id'],), fetchone=True)
-    children = db_execute("SELECT s.*, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON p.student_id = s.id WHERE s.parent_id = %s GROUP BY s.id ORDER BY s.full_name ASC", (session['user_id'],), fetchall=True) or []
+    children = db_execute("""
+        SELECT s.*, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid
+        FROM students s LEFT JOIN payments p ON p.student_id = s.id WHERE s.parent_id = %s GROUP BY s.id ORDER BY s.full_name ASC
+    """, (session['user_id'],), fetchall=True) or []
     symbol = currency_symbol()
     total_balance = parent_total_balance(session['user_id'])
-    child_rows = "".join(f"<tr><td>{c['student_code'] or '-'}</td><td>{c['full_name']}</td><td>{c['class_name']}</td><td>{symbol}{c['total_fee']:,.2f}</td><td>{symbol}{c['amount_paid']:,.2f}</td><td>{symbol}{(c['total_fee'] - c['amount_paid']):,.2f}</td><td><a class='btn btn-secondary' href='{url_for('start_paystack_payment', student_id=c['id'])}'>Pay Now</a></td></tr>" for c in children) or "<tr><td colspan='7'>No child linked yet.</td></tr>"
-    return render_page(f"<div class='grid'><div class='card'><div class='stat-header'><div class='icon-chip'>👤</div><h3 class='stat-label'>Parent</h3></div><h2 class='stat-number'>{parent['full_name']}</h2><p>{parent['email']}</p></div><div class='card'><div class='stat-header'><div class='icon-chip'>👶</div><h3 class='stat-label'>Children</h3></div><h1 class='stat-number'>{len(children)}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>📌</div><h3 class='stat-label'>Total Outstanding</h3></div><h1 class='stat-number danger'>{symbol}{total_balance:,.2f}</h1></div></div><table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Balance</th><th>Action</th></tr>{child_rows}</table>")
+    child_rows = ""
+    for c in children:
+        b = balance_breakdown(c['total_fee'], c['amount_paid'])
+        child_rows += f"<tr><td>{c['student_code'] or '-'}</td><td>{c['full_name']}</td><td>{c['class_name']}</td><td>{symbol}{c['total_fee']:,.2f}</td><td>{symbol}{c['amount_paid']:,.2f}</td><td>{symbol}{b['amount_due']:,.2f}</td><td>{symbol}{b['credit_balance']:,.2f}</td><td class='{b['status_class']}'>{b['status']}</td><td><a class='btn btn-secondary' href='{url_for('start_paystack_payment', student_id=c['id'])}'>Pay Now</a></td></tr>"
+    child_rows = child_rows or "<tr><td colspan='9'>No child linked yet.</td></tr>"
+    return render_page(f"<div class='grid'><div class='card'><div class='stat-header'><div class='icon-chip'>👤</div><h3 class='stat-label'>Parent</h3></div><h2 class='stat-number'>{parent['full_name']}</h2><p>{parent['email']}</p></div><div class='card'><div class='stat-header'><div class='icon-chip'>👶</div><h3 class='stat-label'>Children</h3></div><h1 class='stat-number'>{len(children)}</h1></div><div class='card'><div class='stat-header'><div class='icon-chip'>📌</div><h3 class='stat-label'>Net Balance</h3></div><h1 class='stat-number'>{symbol}{total_balance:,.2f}</h1></div></div><table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Amount Due</th><th>Credit Balance</th><th>Status</th><th>Action</th></tr>{child_rows}</table>")
 
 @app.route('/parent-children')
 @login_required('parent')
@@ -474,23 +499,22 @@ def start_paystack_payment(student_id):
     if session.get('role') == 'parent' and not ensure_parent_can_access_student(session['user_id'], student_id):
         flash('You cannot pay for that child account.')
         return redirect(url_for('parent_dashboard'))
-    balance = get_student_balance(student_id)
+    balance = max(get_student_balance(student_id), 0)
     symbol = currency_symbol()
     if request.method == 'POST':
         try:
             amount_paid = float(request.form['amount_paid'])
             term_name = request.form['term_name'].strip()
             note = request.form['note'].strip()
-            reference = generate_reference('PSTK')
-            payment_id = db_execute("INSERT INTO payments (student_id, amount_paid, payment_date, term_name, method, status, reference, note, created_by, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (student_id, amount_paid, None, term_name, 'Online Payment', 'Pending', reference, note, None if session.get('role') == 'parent' else session.get('user_id'), now_str(), now_str()), fetchone=True, commit=True)["id"]
-            paystack_resp = initialize_paystack_transaction(student, amount_paid, term_name, reference, note)
+            ref = generate_reference('PSTK')
+            payment_id = db_execute("INSERT INTO payments (student_id, amount_paid, payment_date, term_name, method, status, reference, note, created_by, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (student_id, amount_paid, None, term_name, 'Online Payment', 'Pending', ref, note, None if session.get('role') == 'parent' else session.get('user_id'), now_str(), now_str()), fetchone=True, commit=True)["id"]
+            paystack_resp = initialize_paystack_transaction(student, amount_paid, term_name, ref, note)
             data = paystack_resp.get('data', {})
             db_execute("UPDATE payments SET paystack_reference = %s, paystack_access_code = %s, updated_at = %s WHERE id = %s", (data.get('reference'), data.get('access_code'), now_str(), payment_id), commit=True)
             return redirect(data.get('authorization_url'))
         except Exception as exc:
             flash(f'Could not start online payment: {exc}')
-    back_url = url_for('students') if session.get('role') == 'admin' else url_for('parent_dashboard')
-    return render_page(f"<div class='card'><p><strong>Student ID:</strong> {student['student_code'] or '-'}</p><p><strong>Student:</strong> {student['full_name']}</p><p><strong>Outstanding Balance:</strong> {symbol}{balance:,.2f}</p></div><form method='post'><div class='grid'><div><label>Amount to Pay</label><input name='amount_paid' required></div><div><label>Term</label><input name='term_name' required></div><div><label>Note</label><input name='note'></div></div><button type='submit'>Continue to Paystack</button><a href='{back_url}' class='btn btn-warning'>Back</a></form>")
+    return render_page(f"<div class='card'><p><strong>Student ID:</strong> {student['student_code'] or '-'}</p><p><strong>Student:</strong> {student['full_name']}</p><p><strong>Current Amount Due:</strong> {symbol}{balance:,.2f}</p></div><form method='post'><div class='grid'><div><label>Amount to Pay</label><input name='amount_paid' required></div><div><label>Term</label><input name='term_name' required></div><div><label>Note</label><input name='note'></div></div><button type='submit'>Continue to Paystack</button></form>")
 
 @app.route('/paystack/callback')
 def paystack_callback():
@@ -499,13 +523,12 @@ def paystack_callback():
         flash('Missing transaction reference from Paystack callback.')
         return redirect(url_for('login'))
     verify_resp = verify_paystack_transaction(reference)
-    data = verify_resp.get('data', {})
     payment = db_execute("SELECT * FROM payments WHERE reference = %s", (reference,), fetchone=True)
     if payment:
-        ok, message = mark_payment_success(payment, data)
+        ok, message = mark_payment_success(payment, verify_resp.get('data', {}))
         flash('Paystack payment verified successfully.' if ok else message)
         return redirect(url_for('receipt', payment_id=payment['id']))
-    flash('Local payment record not found.')
+    flash('Payment record not found.')
     return redirect(url_for('login'))
 
 @app.route('/paystack/webhook', methods=['POST'])
@@ -520,7 +543,8 @@ def paystack_webhook():
         return jsonify({"ok": True, "message": "Duplicate event ignored"}), 200
     if event.get('event') == 'charge.success':
         payment = db_execute("SELECT * FROM payments WHERE reference = %s", (data.get('reference'),), fetchone=True)
-        if payment: mark_payment_success(payment, data)
+        if payment:
+            mark_payment_success(payment, data)
     return jsonify({"ok": True}), 200
 
 @app.route('/receipt/<int:payment_id>')
@@ -530,20 +554,23 @@ def receipt(payment_id):
     if not payment:
         flash('Receipt not found.')
         return redirect(url_for('dashboard'))
-    symbol = currency_symbol()
     total_paid = db_execute("SELECT COALESCE(SUM(amount_paid),0) AS total FROM payments WHERE student_id = %s AND status = %s", (payment['student_id'], 'Paid'), fetchone=True)['total']
-    balance = payment['total_fee'] - total_paid
+    b = balance_breakdown(payment['total_fee'], total_paid)
+    symbol = currency_symbol()
     school_name, school_logo = school_context()
     status_class = 'status-paid' if payment['status'] == 'Paid' else ('status-pending' if payment['status'] == 'Pending' else 'status-failed')
-    return render_page(f"<div class='receipt'><div class='school-brand'>{f"<img src='{school_logo}' alt='School Logo'>" if school_logo else ''}<div><h2>{school_name}</h2></div></div><p><span class='badge {status_class}'>{payment['status']}</span></p><table><tr><th>Receipt Reference</th><td>{payment['reference']}</td></tr><tr><th>Student ID</th><td>{payment['student_code'] or '-'}</td></tr><tr><th>Student Name</th><td>{payment['full_name']}</td></tr><tr><th>Class</th><td>{payment['class_name']}</td></tr><tr><th>Amount Paid</th><td>{symbol}{payment['amount_paid']:,.2f}</td></tr><tr><th>Total School Fee</th><td>{symbol}{payment['total_fee']:,.2f}</td></tr><tr><th>Total Paid So Far</th><td>{symbol}{total_paid:,.2f}</td></tr><tr><th>Outstanding Balance</th><td>{symbol}{balance:,.2f}</td></tr></table></div>")
+    return render_page(f"<div class='receipt'><div class='school-brand'>{f\"<img src='{school_logo}' alt='School Logo'>\" if school_logo else ''}<div><h2>{school_name}</h2></div></div><p><span class='badge {status_class}'>{payment['status']}</span></p><table><tr><th>Receipt Reference</th><td>{payment['reference']}</td></tr><tr><th>Student ID</th><td>{payment['student_code'] or '-'}</td></tr><tr><th>Student Name</th><td>{payment['full_name']}</td></tr><tr><th>Class</th><td>{payment['class_name']}</td></tr><tr><th>Amount Paid</th><td>{symbol}{payment['amount_paid']:,.2f}</td></tr><tr><th>Total School Fee</th><td>{symbol}{payment['total_fee']:,.2f}</td></tr><tr><th>Total Paid So Far</th><td>{symbol}{total_paid:,.2f}</td></tr><tr><th>Amount Due</th><td>{symbol}{b['amount_due']:,.2f}</td></tr><tr><th>Credit Balance</th><td>{symbol}{b['credit_balance']:,.2f}</td></tr><tr><th>Status</th><td class='{b['status_class']}'>{b['status']}</td></tr></table></div>")
 
 @app.route('/reports')
 @login_required('admin')
 def reports():
     symbol = currency_symbol()
-    rows_data = db_execute("SELECT s.student_code, s.full_name, s.class_name, s.parent_phone, s.parent_email, s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON s.id = p.student_id GROUP BY s.id ORDER BY (s.total_fee - COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0)) DESC", fetchall=True) or []
-    rows = "".join(f"<tr><td>{r['student_code'] or '-'}</td><td>{r['full_name']}</td><td>{r['class_name']}</td><td>{symbol}{r['total_fee']:,.2f}</td><td>{symbol}{r['amount_paid']:,.2f}</td><td>{symbol}{(r['total_fee'] - r['amount_paid']):,.2f}</td></tr>" for r in rows_data)
-    return render_page(f"<table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Balance</th></tr>{rows}</table>")
+    rows_data = db_execute("SELECT s.student_code, s.full_name, s.class_name, s.total_fee, COALESCE(SUM(CASE WHEN p.status = 'Paid' THEN p.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments p ON s.id = p.student_id GROUP BY s.id ORDER BY s.full_name ASC", fetchall=True) or []
+    rows = ""
+    for r in rows_data:
+        b = balance_breakdown(r['total_fee'], r['amount_paid'])
+        rows += f"<tr><td>{r['student_code'] or '-'}</td><td>{r['full_name']}</td><td>{r['class_name']}</td><td>{symbol}{r['total_fee']:,.2f}</td><td>{symbol}{r['amount_paid']:,.2f}</td><td>{symbol}{b['amount_due']:,.2f}</td><td>{symbol}{b['credit_balance']:,.2f}</td><td class='{b['status_class']}'>{b['status']}</td></tr>"
+    return render_page(f"<table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Amount Due</th><th>Credit Balance</th><th>Status</th></tr>{rows}</table>")
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required('admin')
@@ -556,13 +583,20 @@ def settings_page():
         remove_logo = request.form.get('remove_logo') == 'yes'
         current_logo = get_setting('school_logo', '')
         final_logo = '' if remove_logo else current_logo
-        if uploaded_logo and uploaded_logo.filename: final_logo = file_to_data_url(uploaded_logo)
-        elif school_logo_text: final_logo = school_logo_text
-        set_setting('school_name', school_name); set_setting('school_logo', final_logo); set_setting('currency', currency)
+        if uploaded_logo and uploaded_logo.filename:
+            final_logo = file_to_data_url(uploaded_logo)
+        elif school_logo_text:
+            final_logo = school_logo_text
+        set_setting('school_name', school_name)
+        set_setting('school_logo', final_logo)
+        set_setting('currency', currency)
         flash('School branding settings updated successfully.')
         return redirect(url_for('settings_page'))
-    current_school_name, current_school_logo, current_currency = get_setting('school_name', DEFAULT_SCHOOL_NAME), get_setting('school_logo', ''), get_setting('currency', DEFAULT_CURRENCY)
-    return render_page(f"<form method='post' enctype='multipart/form-data'><div class='grid'><div><label>School Name</label><input name='school_name' value='{current_school_name}'></div><div><label>Currency</label><input name='currency' value='{current_currency}'></div><div><label>Upload Logo</label><input type='file' name='school_logo_file'></div><div><label>Or Paste Logo URL / Base64</label><textarea name='school_logo'></textarea></div></div><button type='submit'>Save Branding</button></form>")
+    current_school_name = get_setting('school_name', DEFAULT_SCHOOL_NAME)
+    current_school_logo = get_setting('school_logo', '')
+    current_currency = get_setting('currency', DEFAULT_CURRENCY)
+    logo_preview = f"<img src='{current_school_logo}' alt='School Logo' style='max-width:140px;max-height:140px;border:1px solid #ddd;border-radius:10px;padding:8px;background:#fff;'>" if current_school_logo else "<p class='muted'>No logo uploaded yet.</p>"
+    return render_page(f"<form method='post' enctype='multipart/form-data'><div class='grid'><div><label>School Name</label><input name='school_name' value='{current_school_name}'></div><div><label>Currency</label><input name='currency' value='{current_currency}'></div></div><div class='card'>{logo_preview}</div><label>Upload School Logo</label><input type='file' name='school_logo_file'><label>Or Paste School Logo URL / Base64 Image</label><textarea name='school_logo'></textarea><label>Remove Existing Logo</label><select name='remove_logo'><option value='no'>No</option><option value='yes'>Yes</option></select><button type='submit'>Save Branding</button></form>")
 
 @app.route('/search')
 @login_required()
@@ -573,8 +607,12 @@ def global_search():
         return redirect(url_for('dashboard'))
     symbol = currency_symbol()
     students = db_execute("SELECT s.*, COALESCE(SUM(CASE WHEN py.status = 'Paid' THEN py.amount_paid ELSE 0 END), 0) AS amount_paid FROM students s LEFT JOIN payments py ON py.student_id = s.id WHERE s.full_name ILIKE %s OR s.student_code ILIKE %s OR s.class_name ILIKE %s GROUP BY s.id ORDER BY s.full_name ASC", (f'%{query}%', f'%{query}%', f'%{query}%'), fetchall=True) or []
-    rows = "".join(f"<tr><td>{s['student_code'] or '-'}</td><td>{s['full_name']}</td><td>{s['class_name']}</td><td>{symbol}{s['total_fee']:,.2f}</td><td>{symbol}{s['amount_paid']:,.2f}</td><td>{symbol}{(s['total_fee'] - s['amount_paid']):,.2f}</td></tr>" for s in students) or "<tr><td colspan='6'>No student record found.</td></tr>"
-    return render_page(f"<table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Balance</th></tr>{rows}</table>")
+    rows = ""
+    for s in students:
+        b = balance_breakdown(s['total_fee'], s['amount_paid'])
+        rows += f"<tr><td>{s['student_code'] or '-'}</td><td>{s['full_name']}</td><td>{s['class_name']}</td><td>{symbol}{s['total_fee']:,.2f}</td><td>{symbol}{s['amount_paid']:,.2f}</td><td>{symbol}{b['amount_due']:,.2f}</td><td>{symbol}{b['credit_balance']:,.2f}</td><td class='{b['status_class']}'>{b['status']}</td></tr>"
+    rows = rows or "<tr><td colspan='8'>No student record found.</td></tr>"
+    return render_page(f"<table><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Amount Due</th><th>Credit Balance</th><th>Status</th></tr>{rows}</table>")
 
 @app.route('/health')
 def health():
