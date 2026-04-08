@@ -108,6 +108,10 @@ function toggleMenu(){ const menu = document.getElementById('mobileNavMenu'); if
 <div class="container" style="padding-top:32px;">{{ content|safe }}</div>
 {% elif session.get('user_id') %}
 <header>
+    <div style="text-align:center;font-weight:600;margin-bottom:10px;">
+        <a href="https://ibigana.com" target="_blank" style="color:white;text-decoration:none;">ibigana.com</a>
+    </div>
+
     <div style="margin-bottom:12px; display:flex; justify-content:flex-end;">
         <form action="{{ url_for('global_search') }}" method="get" style="background:transparent;box-shadow:none;padding:0;margin:0;border:none; width:min(520px, 100%);">
             <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;">
@@ -116,11 +120,19 @@ function toggleMenu(){ const menu = document.getElementById('mobileNavMenu'); if
             </div>
         </form>
     </div>
+
     <div class="nav-top">
-        <div class="brand-wrap">{% if school_logo %}<img src="{{ school_logo }}" class="mini-logo" alt="Logo">{% endif %}<h2>ibigana.com</h2></div>
+        <div class="brand-wrap">
+            {% if school_logo %}
+            <img src="{{ school_logo }}" class="mini-logo" alt="Logo">
+            {% endif %}
+            <h2>{{ school_name }}</h2>
+        </div>
+
         <button class="nav-toggle" onclick="toggleMenu()">Menu</button>
         <div class="nav-spacer"></div>
     </div>
+
     <nav id="mobileNavMenu" class="nav-menu">
         {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('dashboard') }}">Dashboard</a>
