@@ -469,7 +469,7 @@ def payments():
     payment_rows = db_execute("SELECT p.id, s.student_code, s.full_name, s.class_name, p.amount_paid, p.payment_date, p.term_name, p.reference, p.method, p.status FROM payments p JOIN students s ON s.id = p.student_id ORDER BY p.id DESC", fetchall=True) or []
     options = "".join(f"<option value='{s['id']}'>{s['student_code'] or '-'} - {s['full_name']} - {s['class_name']}</option>" for s in student_options)
     rows = "".join(f"<tr><td>{p['student_code'] or '-'}</td><td>{p['full_name']}</td><td>{p['class_name']}</td><td>{symbol}{p['amount_paid']:,.2f}</td><td>{p['term_name']}</td><td>{p['method']}</td><td>{p['status']}</td><td>{p['reference']}</td><td>{p['payment_date'] or '-'}</td><td><a class='btn' href='{url_for('receipt', payment_id=p['id'])}'>Receipt</a></td></tr>" for p in payment_rows) or "<tr><td colspan='10'>No payments yet.</td></tr>"
-    return render_page(f"<form method='post'><div class='grid'><div><label>Student</label><select name='student_id'>{options}</select></div><div><label>Amount Paid</label><input name='amount_paid' required></div><div><label>Payment Date</label><input name='payment_date' required></div><div><label>Term</label><input name='term_name' required></div><div><label>Method</label><select name='method'><option value='Cash'>Cash</option><option value='Bank Transfer'>Bank Transfer</option><option value='POS'>POS</option></select></div><div><label>Note</label><input name='note'></div></div><button type='submit'>Save Manual Payment</button></form><table><tr><th>Student ID</th><th>Student</th><th>Class</th><th>Amount</th><th>Term</th><th>Method</th><th>Status</th><th>Reference</th><th>Date</th><th>Receipt</th></tr>{rows}</table>")
+    return render_page(f"<form method='post'><div class='grid'><div><label>Student</label><select name='student_id'>{options}</select></div><div><label>Amount Paid</label><input name='amount_paid' required></div><div><label>Payment Date</label><input type='date' name='payment_date' value='{datetime.now().strftime("%Y-%m-%d")}' required></div><div><label>Term</label><input name='term_name' required></div><div><label>Method</label><select name='method'><option value='Cash'>Cash</option><option value='Bank Transfer'>Bank Transfer</option><option value='POS'>POS</option></select></div><div><label>Note</label><input name='note'></div></div><button type='submit'>Save Manual Payment</button></form><table><tr><th>Student ID</th><th>Student</th><th>Class</th><th>Amount</th><th>Term</th><th>Method</th><th>Status</th><th>Reference</th><th>Date</th><th>Receipt</th></tr>{rows}</table>")
 
 @app.route('/parent-dashboard')
 @login_required('parent')
@@ -575,6 +575,10 @@ def receipt(payment_id):
     logo_html = f"<img src='{school_logo}' alt='School Logo'>" if school_logo else ''
 
     content = f"""
+    <div class='top-actions'>
+        <a href='{url_for('payments' if session.get('role') == 'admin' else 'parent_payments')}' class='btn btn-warning'>Return to Payments</a>
+        <a href='javascript:window.print()' class='btn btn-secondary'>Print Receipt</a>
+    </div>
     <div class='receipt'>
         <div class='school-brand'>
             {logo_html}
